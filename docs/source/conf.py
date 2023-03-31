@@ -14,6 +14,7 @@
 
 import os
 import shutil
+from datetime import datetime, timezone
 
 HERE = os.path.dirname(__file__)
 
@@ -24,7 +25,7 @@ HERE = os.path.dirname(__file__)
 
 # Automatically generate config_options.rst
 with open(os.path.join(HERE, "..", "autogen_config.py")) as f:
-    exec(compile(f.read(), "autogen_config.py", "exec"), {})
+    exec(compile(f.read(), "autogen_config.py", "exec"), {})  # noqa
     print("Created docs for config options")
 
 # -- General configuration ------------------------------------------------
@@ -45,6 +46,13 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+try:
+    import enchant  # type:ignore  # noqa
+
+    extensions += ["sphinxcontrib.spelling"]
+except ImportError:
+    pass
+
 myst_enable_extensions = ["html_image"]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,10 +71,10 @@ master_doc = "index"
 
 # General information about the project.
 project = "nbconvert"
-from datetime import date
 
-year = date.today().year
-copyright = "2015-%s, Jupyter Development Team" % year
+
+year = datetime.now(tz=timezone.utc).date().year
+copyright = "2015-%s, Jupyter Development Team" % year  # noqa
 author = "Jupyter Development Team"
 
 extlinks = {"ghpull": ("https://github.com/jupyter/nbconvert/pull/%s", "PR #%s")}
@@ -82,7 +90,7 @@ linkcheck_ignore = [
 # Get information from _version.py and use it to generate version and release
 _version_py = os.path.join(HERE, "../../nbconvert/_version.py")
 version_ns = {}
-exec(compile(open(_version_py).read(), _version_py, "exec"), version_ns)
+exec(compile(open(_version_py).read(), _version_py, "exec"), version_ns)  # noqa
 # The short X.Y version.
 version = "%i.%i" % version_ns["version_info"][:2]
 # The full version, including alpha/beta/rc tags.
@@ -135,15 +143,7 @@ todo_include_todos = False
 
 # -- Options for HTML output ----------------------------------------------
 
-# Set on_rtd to whether we are building on readthedocs.org. We get this line of
-# code grabbed from docs.readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    import sphinx_rtd_theme
-
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = "pydata_sphinx_theme"
 
 # otherwise, readthedocs.org uses their default theme, so no need to specify it
 

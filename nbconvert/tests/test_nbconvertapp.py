@@ -11,6 +11,7 @@ import pytest
 from traitlets.tests.utils import check_help_all_output
 
 from nbconvert.exporters import HTMLExporter
+from nbconvert.exporters.webpdf import PYPPETEER_INSTALLED
 
 from ..postprocessors import PostProcessorBase
 from ..tests.utils import onlyif_cmds_exist
@@ -148,6 +149,7 @@ class TestNbConvertApp(TestsBase):
             assert os.path.isfile("notebook with spaces.pdf")
 
     @pytest.mark.network
+    @pytest.mark.skipif(not PYPPETEER_INSTALLED, reason="Pyppeeter not installed")
     def test_webpdf_with_chromium(self):
         """
         Generate PDFs if chromium allowed to be downloaded?
@@ -444,7 +446,6 @@ class TestNbConvertApp(TestsBase):
             assert "```" in output1  # but should have fenced blocks
 
         with self.create_temp_cwd(["notebook_jl*.ipynb"]):
-
             output2, _ = self.nbconvert("--to markdown --stdout notebook_jl.ipynb")
             assert "```julia" in output2  # shouldn't have language
             assert "```" in output2  # but should also plain ``` to close cell
@@ -610,24 +611,58 @@ class TestNbConvertApp(TestsBase):
 
     def test_execute_widgets_from_nbconvert(self):
         """Check jupyter widgets render"""
-        notebookName = "Unexecuted_widget"
-        with self.create_temp_cwd([f"{notebookName}.ipynb"]):
-            self.nbconvert(f"{notebookName}.ipynb --execute --log-level 0 --to html")
-            assert os.path.isfile(f"{notebookName}.html")
-            with open(f"{notebookName}.html", encoding="utf8") as f:
+        notebook_name = "Unexecuted_widget"
+        with self.create_temp_cwd([f"{notebook_name}.ipynb"]):
+            self.nbconvert(f"{notebook_name}.ipynb --execute --log-level 0 --to html")
+            assert os.path.isfile(f"{notebook_name}.html")
+            with open(f"{notebook_name}.html", encoding="utf8") as f:
                 text = f.read()
                 assert '<script type="application/vnd.jupyter.widget-view+json">' in text
                 assert '<script type="application/vnd.jupyter.widget-state+json">' in text
 
     def test_execute_multiple_notebooks(self):
         """Check jupyter widgets render in case of batch convert"""
-        notebookName = "Unexecuted_widget"
-        with self.create_temp_cwd([f"{notebookName}*.ipynb"]):
+        notebook_name = "Unexecuted_widget"
+        with self.create_temp_cwd([f"{notebook_name}*.ipynb"]):
             self.nbconvert("*.ipynb --execute --log-level 0 --to html")
 
-            for name in (notebookName, f"{notebookName}_2"):
+            for name in (notebook_name, f"{notebook_name}_2"):
                 assert os.path.isfile(f"{name}.html")
                 with open(f"{name}.html", encoding="utf8") as f:
                     text = f.read()
                     assert '<script type="application/vnd.jupyter.widget-view+json">' in text
                     assert '<script type="application/vnd.jupyter.widget-state+json">' in text
+
+    def test_output_base(self):
+        """
+        Check various configurations of output_base (--output)
+        """
+        notebook_names = [
+            "notebook1",
+            "notebook2",
+        ]
+        with self.create_temp_cwd([x + ".ipynb" for x in notebook_names]):
+            self.nbconvert("*.ipynb --output '{notebook_name}_test_addition.asd' --to markdown")
+
+            for nbn in notebook_names:
+                assert os.path.isfile(f"{nbn}_test_addition.asd.md")
+
+        with self.create_temp_cwd([x + ".ipynb" for x in notebook_names]):
+            self.nbconvert("*.ipynb --to markdown")
+
+            for nbn in notebook_names:
+                assert os.path.isfile(f"{nbn}.md")
+
+        with pytest.raises(OSError), self.create_temp_cwd([x + ".ipynb" for x in notebook_names]):
+            self.nbconvert("*.ipynb --output notebook_test_name --to markdown")
+
+        # Test single output with static output name
+        with self.create_temp_cwd([notebook_names[0] + ".ipynb"]):
+            self.nbconvert("*.ipynb --output notebook_test_name --to markdown")
+            assert os.path.isfile("notebook_test_name.md")
+
+        # Test double extension fix
+        with self.create_temp_cwd([notebook_names[0] + ".ipynb"]):
+            self.nbconvert("*.ipynb --output notebook_test_name.md --to markdown")
+            assert os.path.isfile("notebook_test_name.md")
+            assert not os.path.isfile("notebook_test_name.md.md")

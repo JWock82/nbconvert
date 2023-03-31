@@ -17,7 +17,6 @@ from ..pandoc import convert_pandoc
 
 
 class TestMarkdown(TestsBase):
-
     tests = [
         "*test",
         "**test",
@@ -69,7 +68,7 @@ class TestMarkdown(TestsBase):
         # sometimes pandoc uses $math$, sometimes it uses \(math\)
         expected = re.compile(r"(\$|\\\()\\alpha(\$|\\\)) latex math")
 
-        assertRegex = self.assertRegex
+        assertRegex = self.assertRegex  # noqa
 
         assertRegex(convert_pandoc(s, "markdown_strict+tex_math_dollars", "latex"), expected)
 
@@ -83,7 +82,7 @@ class TestMarkdown(TestsBase):
             ]
         )
         long_line = " ".join(["long"] * 30)
-        env = Environment()
+        env = Environment()  # noqa
         env.filters.update(
             {
                 "md2l": lambda code, extra_args: convert_pandoc(
@@ -168,7 +167,7 @@ class TestMarkdown(TestsBase):
                 search_result = re.search(
                     "\\\\begin\\{equation.*\\}.*\\\\end\\{equation.*\\}", result, re.DOTALL
                 )
-            math = search_result.group(0)
+            math = search_result.group(0)  # type:ignore
             # the resulting math part can not contain "<", ">" or
             # "&" not followed by "lt;", "gt;", or "amp;".
             self.assertNotIn("<", math)
